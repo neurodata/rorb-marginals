@@ -1,0 +1,118 @@
+---
+title: "NeuroData: RORB synapse annotations"
+author: "Jesse Leigh Patsolic"
+date: Date `r Sys.Date()`
+output: 
+  html_document: 
+    keep_md: yes
+  pdf_document: default
+---
+
+<!--
+### ### INITIAL COMMENTS HERE ###
+###
+### Jesse Leigh Patsolic 
+### 2018 <jpatsolic@jhu.edu>
+### S.D.G 
+#
+-->
+
+```{r render, eval=FALSE, echo=FALSE}
+## Run these lines to build the html file with Rmarkdown.
+require(rmarkdown)
+require(rjson)
+require(data.table)
+require(ggplot2)
+require(latex2exp)
+rmarkdown::render("Plot.Rmd", output_format = 'all')
+system('open Plot.html')
+system('open Plot.pdf')
+```
+
+# 8-bit data
+
+## $K = $ Ones$(30,30)$
+
+```{r, echo = FALSE}
+f <- file('results.json', 'r')
+h <- rjson::fromJSON(file = f)
+close(f)
+
+tmp <- Reduce(rbind, lapply(h, function(x) Reduce(cbind, x)))
+
+colnames(tmp) <- names(h[[1]])
+
+dat <- data.table(tmp)
+```
+
+> From: joshua vogelstein <jovo@jhu.edu> Mon, Oct 8, 2018 at 6:19 PM 
+> To: Carey E Priebe <cep@jhu.edu>, Jesse Patsolic <studiojlp@gmail.com>, Benjamin Falk <falk.ben@jhu.edu>, joshua vogelstein <jovo@jhu.edu>
+>
+>cep - EM provides "gold standard" labels in images several different AT channels provide markers.
+>somebody ran an algorithm, to detect synapses, and missed many.
+>afaict, it would be literally impossible for any algorithm to detect them, because the "information content" is not there.
+>the data are: (X_i,Y_i), i =1,...,n
+>where Y_i is binary
+>X_i natively lives in LxWxHxC space (or something close to it, a few voxels per plane, a few planes, and about 10 channels).
+>we have ways that we like to reduce this to merely C, that is, the number of channels. we have ways to reduce C to 2.
+>we have about 1000 Y_i=1 and can obtain, say, 1M Y_i=0.
+>sometimes, however, when Y_i = 1, meaning the X_i's should be relatively large, they are zero.
+
+
+> ..., it suggests the following analysis:
+>centered at each centroid, just sum up all the voxels within a cube, call that t_i
+>then, let's plot the fraction of detected synapses with t_i > t, and vary t from 0 to max t_i let's do that for each of the 2 "important channels", and/or all the channels.
+>if the magnitude is not large enough, there is no function of the cube that could possibly detect the synapse.
+> 
+
+```{r, fig.height = 5, fig.width = 7, echo = FALSE}
+tsseq <- seq(0, max(dat$synapsin), by = 0.1)
+tpseq <- seq(0, max(dat$psd), by = 0.1)
+
+tSyn <- sapply(tsseq, function(x) sum(dat$synapsin > x) / nrow(dat))
+tPSD <- sapply(tpseq, function(x) sum(dat$psd > x) / nrow(dat))
+
+plot(tsseq, tSyn, type = 'l', xlab = 't', ylab = 't_i')
+points(tpseq, tPSD, type = 'l', col = 'red')
+text(quantile(tsseq, 0.25), 0.5, label = 'synapsin', col = 'black')
+text(quantile(tsseq, 0.2), 0.6, label = 'psd95', col = 'red')
+title("Fraction of t_i > t sweeping over t.")
+```
+
+```{r newfig}
+#tsseq <- seq(0, max(dat$synapsin), by = 0.1)
+#tpseq <- seq(0, max(dat$psd), by = 0.1)
+tseq <- seq(0, max(dat$psd, dat$synapsin), by = 0.1)
+tSyn <- sapply(tseq, function(x) sum(dat$synapsin > x) / nrow(dat))
+tPSD <- sapply(tseq, function(x) sum(dat$psd > x) / nrow(dat))
+tSP <- sapply(tseq, function(x) sum((dat$psd + dat$syn) > x) / nrow(dat))
+
+
+d1 <- data.frame(t = tseq, ti = tSyn, Channel = "synapsin")
+d2 <- data.frame(t = tseq, ti = tPSD, Channel = "PSD95")
+d3 <- data.frame(t = tseq, ti = tSP, Channel = "synapsin + PSD95")
+
+d0 <- rbind(d1, d2, d3)
+
+ggplot(data = d0, aes(x = t, y = ti, group = Channel, col = Channel)) + 
+  scale_y_continuous(breaks = seq(0, max(d0$ti), by = 0.1)) + 
+  geom_line(alpha = 0.75) + 
+  geom_vline(xintercept = 2.65, col = 'salmon', lty = 2) +  
+  geom_vline(xintercept = 4.11, col = 'darkgreen', lty = 2) +  
+  ylab(TeX("$t_i$"))
+
+```
+
+```{r hist}
+hist(dat$synapsin, prob = TRUE)
+```
+
+
+
+<!--
+#   Time:
+##  Working status:
+### Comments:
+####Soli Deo Gloria
+--> 
+

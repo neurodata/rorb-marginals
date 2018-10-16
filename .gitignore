@@ -1,0 +1,8 @@
+
+.*\.ini$
+.*\.conf$
+^data$
+^data16$
+^annotations$
+^env$
+.*\.tif$

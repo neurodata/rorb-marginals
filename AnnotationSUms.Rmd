@@ -34,221 +34,24 @@ require(slackr)
 slackrSetup(config_file = '~/mr*/slackR/NeuroData/slackr.conf')
 
 #knitr::opts_chunk$set(cache=TRUE, autodep=TRUE)
-opts_chunk$set(cache=FALSE, echo=FALSE ,warning=FALSE,message=FALSE,)
+opts_chunk$set(cache=FALSE, echo=FALSE ,warning=FALSE,message=FALSE)
 
 rmarkdown::render("AnnotationSUms.Rmd", output_format = 'all')
 system('open AnnotationSUms.html')
 #system('open AnnotationSUms.pdf')
 ```
 
+```{r}
+mn1 <- read.csv("m247514_Site3Annotation_MN_global_annotationMeans.csv")
+goo <- read.csv("GoogleDocData.csv")
+goo$annoID <- goo$id + 1
+goo <- as.data.table(goo)
+```
+
 
 The data live in 8-bit (windowed) and 16-bit spaces.  The annotations
 have been dilated in EM space $3 \times 3 \times 50$ nm voxels with a
 kernel $K = Ones(w,w)$ for $w = {32,64, 80}$.
-
-
-# 8-bit data
-
-## $K = Ones(32,32)$
-
-```{r, echo = FALSE}
-f32 <- file('results_k32.json', 'r')
-h32 <- rjson::fromJSON(file = f32)
-close(f32)
-
-tmp32 <- Reduce(rbind, lapply(h32, function(x) Reduce(cbind, x)))
-
-colnames(tmp32) <- names(h32[[1]])
-
-dat32 <- 
-  data.table(tmp32)[, .(annoID, synapsin, psd95, voxels)][order(annoID)]
-```
-
-
-```{r, eval = FALSE, fig.height = 4, fig.width = 7, echo = FALSE}
-tseq <- seq(0, max(dat32$synapsin, dat32$psd), by = 0.1)
-
-tSyn <- sapply(tseq, function(x) sum(dat32$synapsin > x) / nrow(dat32))
-tPSD <- sapply(tseq, function(x) sum(dat32$psd > x) / nrow(dat32))
-
-plot(tseq, tSyn, type = 'l', xlab = 't', ylab = 't_i')
-points(tseq, tPSD, type = 'l', col = 'red')
-text(quantile(tseq, 0.25), 0.5, label = 'synapsin', col = 'black')
-text(quantile(tseq, 0.2), 0.6, label = 'psd95', col = 'red')
-title("Fraction of t_i > t sweeping over t.")
-```
-
-```{r newfig1}
-tseq <- seq(0, max(dat32$psd, dat32$synapsin), by = 0.1)
-tSyn <- sapply(tseq, function(x) sum(dat32$synapsin > x) / nrow(dat32))
-tPSD <- sapply(tseq, function(x) sum(dat32$psd > x) / nrow(dat32))
-tSP <- sapply(tseq, function(x) sum((dat32$psd + dat32$syn) > x) / nrow(dat32))
-
-
-d1 <- data.frame(t = tseq, ti = tSyn, Channel = "synapsin")
-d2 <- data.frame(t = tseq, ti = tPSD, Channel = "PSD95")
-d3 <- data.frame(t = tseq, ti = tSP, Channel = "synapsin + PSD95")
-
-d0 <- rbind(d1, d2, d3)
-
-ggplot(data = d0, aes(x = t, y = ti, group = Channel, col = Channel)) + 
-  scale_y_continuous(breaks = seq(0, max(d0$ti), by = 0.1)) + 
-  geom_line(alpha = 0.75) + 
-  geom_vline(xintercept = 2.65, col = 'salmon', lty = 2) +  
-  geom_vline(xintercept = 4.11, col = 'darkgreen', lty = 2) +  
-  ylab(TeX("$t_i$"))
-
-```
-
-### histograms
-
-```{r hist32}
-m32 <- melt(dat32[, -4], id.vars = c('annoID'))
-
-a1 <- 
-  ggplot(data = m32, aes(x = value, y = ..count.., fill = variable)) + 
-        geom_histogram(breaks = seq(0, 68, 2)) + 
-        facet_grid(. ~ variable)
-
-a2 <- 
-  ggplot(data = m32, aes(x = value, fill = variable, col = variable)) + geom_density() + facet_grid(. ~ variable)
-
-grid.arrange(a1,a2)
-```
-
-
-## $K = Ones(64,64)$
-
-```{r, echo = FALSE}
-f64 <- file('results_k64.json', 'r')
-h64 <- rjson::fromJSON(file = f64)
-close(f64)
-
-tmp64 <- Reduce(rbind, lapply(h64, function(x) Reduce(cbind, x)))
-
-colnames(tmp64) <- names(h64[[1]])
-
-dat64 <- 
-  data.table(tmp64)[, .(annoID, synapsin, psd95, voxels)][order(annoID)]
-```
-
-
-```{r, eval = FALSE, fig.height = 5, fig.width = 7, echo = FALSE}
-tseq <- seq(0, max(dat64$synapsin, dat64$psd), by = 0.1)
-
-tSyn <- sapply(tseq, function(x) sum(dat64$synapsin > x) / nrow(dat64))
-tPSD <- sapply(tseq, function(x) sum(dat64$psd > x) / nrow(dat64))
-
-plot(tseq, tSyn, type = 'l', xlab = 't', ylab = 't_i', ylim = c(0,1.1))
-points(tseq, tPSD, type = 'l', col = 'red', ylim = c(0,1.1))
-text(quantile(tseq, 0.25), 0.5, label = 'synapsin', col = 'black')
-text(quantile(tseq, 0.2), 0.6, label = 'psd95', col = 'red')
-title("Fraction of t_i > t sweeping over t.")
-```
-
-```{r newfig2}
-tseq <- seq(0, max(dat64$psd, dat64$synapsin), by = 0.1)
-tSyn <- sapply(tseq, function(x) sum(dat64$synapsin > x) / nrow(dat64))
-tPSD <- sapply(tseq, function(x) sum(dat64$psd > x) / nrow(dat64))
-tSP <- sapply(tseq, function(x) sum((dat64$psd + dat64$syn) > x) / nrow(dat64))
-
-
-d1 <- data.frame(t = tseq, ti = tSyn, Channel = "synapsin")
-d2 <- data.frame(t = tseq, ti = tPSD, Channel = "PSD95")
-d3 <- data.frame(t = tseq, ti = tSP, Channel = "synapsin + PSD95")
-
-d0 <- rbind(d1, d2, d3)
-
-p2 <- ggplot(data = d0, aes(x = t, y = ti, group = Channel, col = Channel)) + 
-  scale_y_continuous(breaks = seq(0, 1.0, by = 0.1)) + 
-  geom_line(alpha = 0.75) + 
-  geom_vline(xintercept = 2.65, col = 'salmon', lty = 2) +  
-  geom_vline(xintercept = 4.11, col = 'darkgreen', lty = 2) +  
-  ylab(TeX("$t_i$"))
-
-show(p2)
-```
-
-```{r hist64}
-m64 <- reshape2::melt(dat64[, -4], id.vars = c('annoID'))
-
-a164 <- 
-  ggplot(data = m64, aes(x = value, y = ..count.., fill = variable)) + 
-        geom_histogram(breaks = seq(0, 68, 2)) + 
-        facet_grid(. ~ variable)
-
-a264 <- 
-  ggplot(data = m64, aes(x = value, fill = variable, col = variable)) + geom_density() + facet_grid(. ~ variable)
-
-grid.arrange(a164,a264)
-```
-
-## $K = Ones(80,80)$
-
-```{r, echo = FALSE}
-f80 <- file('results_k80.json', 'r')
-h80 <- rjson::fromJSON(file = f80)
-close(f80)
-
-tmp80 <- Reduce(rbind, lapply(h80, function(x) Reduce(cbind, x)))
-
-colnames(tmp80) <- names(h80[[1]])
-
-dat80 <- 
-  data.table(tmp80)[, .(annoID, synapsin, psd95, voxels)][order(annoID)]
-```
-
-
-```{r, eval = FALSE, fig.height = 5, fig.width = 7, echo = FALSE}
-tseq <- seq(0, max(dat80$synapsin, dat80$psd), by = 0.1)
-
-tSyn <- sapply(tseq, function(x) sum(dat80$synapsin > x) / nrow(dat80))
-tPSD <- sapply(tseq, function(x) sum(dat80$psd > x) / nrow(dat80))
-
-plot(tseq, tSyn, type = 'l', xlab = 't', ylab = 't_i', ylim = c(0,1.1))
-points(tseq, tPSD, type = 'l', col = 'red', ylim = c(0,1.1))
-text(quantile(tseq, 0.25), 0.5, label = 'synapsin', col = 'black')
-text(quantile(tseq, 0.2), 0.6, label = 'psd95', col = 'red')
-title("Fraction of t_i > t sweeping over t.")
-```
-
-```{r}
-tseq <- seq(0, max(dat80$psd, dat80$synapsin), by = 0.1)
-tSyn <- sapply(tseq, function(x) sum(dat80$synapsin > x) / nrow(dat80))
-tPSD <- sapply(tseq, function(x) sum(dat80$psd > x) / nrow(dat80))
-tSP <- sapply(tseq, function(x) sum((dat80$psd + dat80$syn) > x) / nrow(dat80))
-
-
-d1 <- data.frame(t = tseq, ti = tSyn, Channel = "synapsin")
-d2 <- data.frame(t = tseq, ti = tPSD, Channel = "PSD95")
-d3 <- data.frame(t = tseq, ti = tSP, Channel = "synapsin + PSD95")
-
-d0 <- rbind(d1, d2, d3)
-
-p2 <- ggplot(data = d0, aes(x = t, y = ti, group = Channel, col = Channel)) + 
-  scale_y_continuous(breaks = seq(0, 1.0, by = 0.1)) + 
-  geom_line(alpha = 0.75) + 
-  geom_vline(xintercept = 2.65, col = 'salmon', lty = 2) +  
-  geom_vline(xintercept = 4.11, col = 'darkgreen', lty = 2) +  
-  ylab(TeX("$t_i$"))
-
-show(p2)
-```
-
-```{r hist80}
-m80 <- reshape2::melt(dat80[, -4], id.vars = c('annoID'))
-
-a180 <- 
-  ggplot(data = m80, aes(x = value, y = ..count.., fill = variable)) + 
-        geom_histogram(breaks = seq(0, 68, 2)) + 
-        facet_grid(. ~ variable)
-
-a280 <- 
-  ggplot(data = m80, aes(x = value, fill = variable, col = variable)) + geom_density() + facet_grid(. ~ variable)
-
-grid.arrange(a180,a280)
-```
-
 
 
 # 16-bit data
@@ -266,6 +69,8 @@ colnames(tmp32_16) <- names(h32_16[[1]])
 
 dat32_16 <- 
   data.table(tmp32_16)[, .(annoID, synapsin, psd95, voxels)][order(annoID)]
+
+dat32_16 <- merge(dat32_16, goo[, .(annoID, gaba)])
 ```
 
 
@@ -334,6 +139,7 @@ colnames(tmp64_16) <- names(h64_16[[1]])
 
 dat64_16 <- 
   data.table(tmp64_16)[, .(annoID, synapsin, psd95, voxels)][order(annoID)]
+dat64_16 <- merge(dat64_16, goo[, .(annoID, gaba)])
 ```
 
 
@@ -387,6 +193,59 @@ a264_16 <-
   ggplot(data = m64_16, aes(x = value, fill = variable, col = variable)) + geom_density() + facet_grid(. ~ variable)
 
 grid.arrange(a164_16,a264_16)
+```
+
+
+
+## Expression per class on 16-bit data.
+
+```{r}
+mdat32_16 <- data.table::melt(dat32_16[, -c('voxels')], id.vars = c('annoID', 'gaba'))
+ggplot(mdat32_16, aes(x = variable, y = value)) + geom_boxplot(notch = TRUE) + facet_grid(. ~ gaba)
+```
+
+```{r exp-class}
+tSyn <- list()
+tPSD <- list()
+tSP <- list()
+
+tseq <- seq(0, max(dat64_16$psd, dat64_16$synapsin), length = 100)
+
+tSyn$'gaba0' <- sapply(tseq, function(x) sum( dat64_16[gaba == 0,]$synapsin > x) / nrow(dat64_16[gaba == 0]))
+tSyn$'gaba1' <- sapply(tseq, function(x) sum( dat64_16[gaba == 1,]$synapsin > x) / nrow(dat64_16[gaba == 1]))
+
+tPSD$'gaba0' <- sapply(tseq, function(x) sum(dat64_16[gaba == 0, ]$psd > x) / nrow(dat64_16[gaba == 0]))
+tPSD$'gaba1' <- sapply(tseq, function(x) sum(dat64_16[gaba == 1, ]$psd > x) / nrow(dat64_16[gaba == 1]))
+
+tSP$'gaba0' <- sapply(tseq, function(x) sum((dat64_16[gaba == 0, ]$psd + dat64_16[gaba == 0, ]$syn) > x) / 
+                  nrow(dat64_16[gaba == 0]))
+
+tSP$'gaba1' <- sapply(tseq, function(x) sum((dat64_16[gaba == 1, ]$psd + dat64_16[gaba == 1, ]$syn) > x) / 
+                  nrow(dat64_16[gaba == 1]))
+
+tList <- list(Syn = tSyn, PSD = tPSD, SP = tSP)
+
+d0 <- data.table(cbind(melt(tList), tseq))
+```
+
+```{r}
+ms <- 
+  c(mean(dat32_16[gaba == 0]$synapsin), 
+    mean(dat32_16[gaba == 1]$synapsin),
+    mean(dat32_16[gaba == 0]$psd95), 
+    mean(dat32_16[gaba == 1]$psd95))
+
+
+dummy2 <- 
+    data.frame(expand.grid(L2 = c("gaba0", "gaba1"), L1 = c("Syn", "PSD")), Z = ms)
+
+
+p5 <- 
+  ggplot(data = d0, aes(x = tseq, y = value, col = L1)) + geom_line(alpha = 0.75) + 
+    geom_vline(data = dummy2, aes(xintercept = Z, col = L1, group = L2), alpha = 0.5) +
+    facet_grid(. ~ L2) 
+
+show(p5)
 ```
 
 

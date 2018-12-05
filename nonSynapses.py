@@ -20,6 +20,7 @@ mult = np.array([[1,0,0], [0, 1/32, 0], [0,0,1/32]])
 with open('slack.ini', 'r') as fp:
     slack_token = fp.readline().strip()
     slack_user  = fp.readline().strip()
+    slack_channel = fp.readline().strip()
 
 slack = Slacker(slack_token)
 
@@ -29,13 +30,13 @@ def nudgeB(B, zMax, yMax, xMax):
     ## calculate min and max for amount
     ## to nudge to stay withing bounds
     szmin = -1 * abs(np.min(B[:, 0]) - 0)
-    szmax = abs(np.max(B[:, 0]) - zMax) - 1
+    szmax = abs(np.max(B[:, 0]) - zMax)
 
     symin = -1 * abs(np.min(B[:, 1]) - 0)
-    symax = abs(np.max(B[:, 1]) - yMax) - 1
+    symax = abs(np.max(B[:, 1]) - yMax)
 
     sxmin = -1 * abs(np.min(B[:, 2]) - 0)
-    sxmax = abs(np.max(B[:, 2]) - xMax) - 1
+    sxmax = abs(np.max(B[:, 2]) - xMax)
 
     ## Sample random nudge in z, y, and x directions
     ## making sure to stay within bounds
@@ -107,8 +108,6 @@ slack.chat.post_message(slack_user, 'Synaptomes1 has entered the loop2 ...')
 
 try:
     for key in annoLoc:
-        print(key)
-        sys.stdout.flush()
         ## nudge annotation i
         si = np.asarray(annoLoc[key])
         Bn = nudgeB(si, zMax, yMax, xMax)
@@ -128,7 +127,6 @@ try:
         annoID = key
         numVox = ai.shape[0]
         synsum = np.sum(Syn[ai[:, 0], ai[:, 1], ai[:, 2]]) / numVox
-
         psdsum = np.sum(PSD[ai[:, 0], ai[:, 1], ai[:, 2]]) / numVox
 
 

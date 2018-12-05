@@ -24,25 +24,32 @@ require(rjson)
 require(data.table)
 require(ggplot2)
 require(latex2exp)
-rmarkdown::render("Plot.Rmd", output_format = 'all')
+rmarkdown::render("Plot.Rmd", output_format = 'html_document')
 system('open Plot.html')
-system('open Plot.pdf')
 ```
 
-# 8-bit data
+# 16-bit data
 
-## $K = $ Ones$(30,30)$
+## $K = $ Ones$(60, 60)$
 
 ```{r, echo = FALSE}
-f <- file('results.json', 'r')
-h <- rjson::fromJSON(file = f)
-close(f)
+s <- file('synapse_results_16bit_k60.json', 'r')
+ns <- file('nonSynapse_results_16bit_k60.json', 'r')
 
-tmp <- Reduce(rbind, lapply(h, function(x) Reduce(cbind, x)))
+hs <- rjson::fromJSON(file = s)
+hns <- rjson::fromJSON(file = ns)
 
-colnames(tmp) <- names(h[[1]])
+close(s)
+close(ns)
 
-dat <- data.table(tmp)
+tmps <- Reduce(rbind, lapply(hs, function(x) Reduce(cbind, x)))
+tmpns <- Reduce(rbind, lapply(hns, function(x) Reduce(cbind, x)))
+
+colnames(tmps) <- names(hs[[1]])
+colnames(tmpns) <- names(hns[[1]])
+#
+dats <- data.table(tmps)
+datns <- data.table(tmpns)
 ```
 
 > From: joshua vogelstein <jovo@jhu.edu> Mon, Oct 8, 2018 at 6:19 PM 
@@ -65,46 +72,85 @@ dat <- data.table(tmp)
 >if the magnitude is not large enough, there is no function of the cube that could possibly detect the synapse.
 > 
 
-```{r, fig.height = 5, fig.width = 7, echo = FALSE}
-tsseq <- seq(0, max(dat$synapsin), by = 0.1)
-tpseq <- seq(0, max(dat$psd), by = 0.1)
+```{r datGather}
+tsseq <- seq(0, max(dats$synapsin), by = 0.1)
+tpseq <- seq(0, max(dats$psd), by = 0.1)
 
-tSyn <- sapply(tsseq, function(x) sum(dat$synapsin > x) / nrow(dat))
-tPSD <- sapply(tpseq, function(x) sum(dat$psd > x) / nrow(dat))
+ntsseq <- seq(0, max(datns$synapsin), by = 0.1)
+ntpseq <- seq(0, max(datns$psd), by = 0.1)
 
-plot(tsseq, tSyn, type = 'l', xlab = 't', ylab = 't_i')
-points(tpseq, tPSD, type = 'l', col = 'red')
-text(quantile(tsseq, 0.25), 0.5, label = 'synapsin', col = 'black')
-text(quantile(tsseq, 0.2), 0.6, label = 'psd95', col = 'red')
-title("Fraction of t_i > t sweeping over t.")
+tSyn <- sapply(tsseq, function(x) sum(dats$synapsin > x) / nrow(dats))
+tPSD <- sapply(tpseq, function(x) sum(dats$psd > x) / nrow(dats))
+
+tnSyn <- sapply(ntsseq, function(x) sum(datns$synapsin > x) / nrow(datns))
+tnPSD <- sapply(ntpseq, function(x) sum(datns$psd > x) / nrow(datns))
 ```
 
-```{r newfig}
-#tsseq <- seq(0, max(dat$synapsin), by = 0.1)
-#tpseq <- seq(0, max(dat$psd), by = 0.1)
-tseq <- seq(0, max(dat$psd, dat$synapsin), by = 0.1)
-tSyn <- sapply(tseq, function(x) sum(dat$synapsin > x) / nrow(dat))
-tPSD <- sapply(tseq, function(x) sum(dat$psd > x) / nrow(dat))
-tSP <- sapply(tseq, function(x) sum((dat$psd + dat$syn) > x) / nrow(dat))
+
+```{r, fig.height = 7, fig.width = 8, echo = FALSE}
+plot(range(c(tsseq, tpseq)), range(c(tSyn, tPSD, tnSyn, tnPSD)), type = 'n')
+points(tsseq, tSyn, type = 'l', xlab = 't', ylab = 't_i')
+points(ntsseq, tnSyn, type = 'l', xlab = 't', ylab = 't_i', lty = 3, col = scales::alpha('black', 0.25))
+points(tpseq, tPSD, type = 'l', col = 'red')
+points(ntpseq, tnPSD, type = 'l', col = scales::alpha('red', 0.25), lty = 3)
+text(quantile(tsseq, 0.25), 0.5, label = 'synapsin', col = 'black')
+text(quantile(tsseq, 0.2), 0.6, label = 'psd95', col = 'red')
+title("Fraction of t_i > t sweeping over t\n transparent lines are at 'non-synapses'.")
+```
+
+```{r newfig, fig.height = 9, fig.width = 9}
+#tsseq <- seq(0, max(dats$synapsin), by = 0.1)
+#tpseq <- seq(0, max(dats$psd), by = 0.1)
+tseq <- seq(0, max(dats$psd, dats$synapsin), by = 0.1)
+tSyn <- sapply(tseq, function(x) sum(dats$synapsin > x) / nrow(dats))
+tPSD <- sapply(tseq, function(x) sum(dats$psd > x) / nrow(dats))
+tSP <- sapply(tseq, function(x) sum((dats$psd + dats$syn) > x) / nrow(dats))
 
 
 d1 <- data.frame(t = tseq, ti = tSyn, Channel = "synapsin")
 d2 <- data.frame(t = tseq, ti = tPSD, Channel = "PSD95")
 d3 <- data.frame(t = tseq, ti = tSP, Channel = "synapsin + PSD95")
 
-d0 <- rbind(d1, d2, d3)
+ntseq <- seq(0, max(datns$psd, dats$synapsin), by = 0.1)
+ntSyn <- sapply(ntseq, function(x) sum(datns$synapsin > x) / nrow(datns))
+ntPSD <- sapply(ntseq, function(x) sum(datns$psd > x) / nrow(datns))
+ntSP <- sapply(ntseq, function(x) sum((datns$psd + datns$syn) > x) / nrow(datns))
+
+d4 <- data.frame(t = ntseq, ti = ntSyn, Channel = "synapsin")
+d5 <- data.frame(t = ntseq, ti = ntPSD, Channel = "PSD95")
+d6 <- data.frame(t = ntseq, ti = ntSP, Channel = "synapsin + PSD95")
+
+d0s <- data.table(rbind(d1, d2, d3), type = 'synapse')
+d0ns <- data.table(rbind(d4, d5, d6), type = 'non-synapse')
+
+d0 <- data.table(rbind(d0s, d0ns))
 
 ggplot(data = d0, aes(x = t, y = ti, group = Channel, col = Channel)) + 
   scale_y_continuous(breaks = seq(0, max(d0$ti), by = 0.1)) + 
   geom_line(alpha = 0.75) + 
   geom_vline(xintercept = 2.65, col = 'salmon', lty = 2) +  
   geom_vline(xintercept = 4.11, col = 'darkgreen', lty = 2) +  
-  ylab(TeX("$t_i$"))
+  ylab(TeX("$t_i$")) + 
+  facet_grid(type ~ .)
+
+#ggplot(data = d0, aes(x = t, y = ti, group = Channel, col = Channel)) + 
+#  scale_y_continuous(breaks = seq(0, max(d0$ti), by = 0.1)) + 
+#  geom_line(alpha = 0.75) + 
+#  geom_vline(xintercept = 2.65, col = 'salmon', lty = 2) +  
+#  geom_vline(xintercept = 4.11, col = 'darkgreen', lty = 2) +  
+#  ylab(TeX("$t_i$"))
+#
+#ggplot(data = d0n, aes(x = t, y = ti, group = Channel, col = Channel)) + 
+#  scale_y_continuous(breaks = seq(0, max(d0$ti), by = 0.1)) + 
+#  geom_line(alpha = 0.75) + 
+#  geom_vline(xintercept = 2.65, col = 'salmon', lty = 2) +  
+#  geom_vline(xintercept = 4.11, col = 'darkgreen', lty = 2) +  
+#  ylab(TeX("$t_i$"))
 
 ```
 
 ```{r hist}
-hist(dat$synapsin, prob = TRUE)
+hist(dats$synapsin, prob = TRUE)
 ```
 
 

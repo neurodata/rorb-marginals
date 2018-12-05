@@ -126,6 +126,7 @@ try:
         ## normalize by number of pixels
         annoID = key
         numVox = ai.shape[0]
+
         synsum = np.sum(Syn[ai[:, 0], ai[:, 1], ai[:, 2]]) / numVox
         psdsum = np.sum(PSD[ai[:, 0], ai[:, 1], ai[:, 2]]) / numVox
 
@@ -150,7 +151,7 @@ except Exception as e:
 
 
 ## Save data
-with open('nonSynapse_results_16bit_k64.json', 'w') as fp:
+with open('nonSynapse_results_16bit_k60.json', 'w') as fp:
     json.dump(dict(nonSynapse), fp)
 
 
@@ -184,7 +185,7 @@ except Exception as e:
 
 
 ## Save data
-with open('synapse_results_16bit_k64.json', 'w') as fp:
+with open('synapse_results_16bit_k60.json', 'w') as fp:
     json.dump(dict(synapse), fp)
 
 

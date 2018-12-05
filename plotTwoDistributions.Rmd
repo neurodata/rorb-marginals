@@ -1,0 +1,85 @@
+---
+title: "NeuroData: RORB synapse annotations and 'nudged' non-synpase annotations"
+author: "Jesse Leigh Patsolic"
+date: Date `r Sys.Date()`
+output: 
+  html_document: 
+    keep_md: yes
+---
+
+<!--
+### ### INITIAL COMMENTS HERE ###
+###
+### Jesse Leigh Patsolic 
+### 2018 <jpatsolic@jhu.edu>
+### S.D.G 
+#
+-->
+
+```{r render, eval=FALSE, echo=FALSE}
+## Run these lines to build the html file with Rmarkdown.
+require(rmarkdown)
+require(rjson)
+require(data.table)
+require(ggplot2)
+require(latex2exp)
+rmarkdown::render("plotTwoDistributions.Rmd", output_format = 'all')
+system('open plotTwoDistributions.html')
+```
+
+```{r, echo = FALSE}
+s <- file('synapse_results_16bit_k60.json', 'r')
+ns <- file('nonSynapse_results_16bit_k60.json', 'r')
+Sj <- rjson::fromJSON(file = s)
+NSj <- rjson::fromJSON(file = ns)
+close(s)
+close(ns)
+
+S <- Reduce(rbind, lapply(Sj, function(x) Reduce(cbind, x)))
+NS <- Reduce(rbind, lapply(NSj, function(x) Reduce(cbind, x)))
+
+colnames(S)  <- names(Sj[[1]])
+colnames(NS) <- names(NSj[[1]])
+
+datS  <- data.table(S)
+datNS <- data.table(NS)
+```
+
+
+```{r hist}
+datS$type <- 'synapse'
+datNS$type <- 'non-synapse'
+tmp1 <- melt(datS[, .(psd95, synapsin, type)], id.vars = c('psd95', 'synapsin', 'type'))
+tmp2 <- melt(datNS[, .(psd95, synapsin, type)], id.vars = c('psd95', 'synapsin', 'type'))
+
+dat <- as.data.table(rbind(tmp1, tmp2))
+
+
+p1 <-  ggplot(data = dat, aes(x = psd95, y = ..density.., color = type)) + geom_density()
+
+p2 <-  ggplot(data = dat, aes(x = synapsin, y = ..density.., color = type)) + geom_density()
+```
+
+## PSD95
+
+```{r, fig.width = 8, fig.height = 7}
+show(p1)
+```
+
+## SYNAPSIN
+
+```{r, fig.width = 8, fig.height = 7}
+show(p2)
+```
+
+
+
+
+
+<!--
+#   Time:
+##  Working status:
+### Comments:
+####Soli Deo Gloria
+--> 
+

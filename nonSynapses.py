@@ -8,11 +8,12 @@ import tifffile as tiff
 import pickle
 from slacker import Slacker
 import os 
+import sys
 
 np.random.seed(1)
 
 ## multiplier to go from EM to AT/IF coordinates
-mult = np.array([[2,0,0], [0, 1/32, 0], [0,0,1/32]])
+mult = np.array([[1,0,0], [0, 1/32, 0], [0,0,1/32]])
 
 
 ## Set up slacker for status updates
@@ -28,13 +29,13 @@ def nudgeB(B, zMax, yMax, xMax):
     ## calculate min and max for amount
     ## to nudge to stay withing bounds
     szmin = -1 * abs(np.min(B[:, 0]) - 0)
-    szmax = abs(np.max(B[:, 0]) - zMax)
+    szmax = abs(np.max(B[:, 0]) - zMax) - 1
 
     symin = -1 * abs(np.min(B[:, 1]) - 0)
-    symax = abs(np.max(B[:, 1]) - yMax)
+    symax = abs(np.max(B[:, 1]) - yMax) - 1
 
     sxmin = -1 * abs(np.min(B[:, 2]) - 0)
-    sxmax = abs(np.max(B[:, 2]) - xMax)
+    sxmax = abs(np.max(B[:, 2]) - xMax) - 1
 
     ## Sample random nudge in z, y, and x directions
     ## making sure to stay within bounds
@@ -106,6 +107,8 @@ slack.chat.post_message(slack_user, 'Synaptomes1 has entered the loop2 ...')
 
 try:
     for key in annoLoc:
+        print(key)
+        sys.stdout.flush()
         ## nudge annotation i
         si = np.asarray(annoLoc[key])
         Bn = nudgeB(si, zMax, yMax, xMax)
@@ -144,7 +147,8 @@ try:
 
 except Exception as e:
     print(e)
-    slack.chat.post_message(slack_user, 'FAILED at loop building nonSynapses.\n' + str(e))
+    slack.chat.post_message(slack_user, 'FAILED at loop building nonSynapses at key' +
+            str(key) + '\n' + str(e))
 
 
 ## Save data

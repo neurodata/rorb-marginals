@@ -23,6 +23,7 @@ require(rjson)
 require(data.table)
 require(ggplot2)
 require(latex2exp)
+require(gridExtra)
 rmarkdown::render("plotTwoDistributions.Rmd", output_format = 'all')
 system('open plotTwoDistributions.html')
 ```
@@ -57,19 +58,25 @@ dat <- as.data.table(rbind(tmp1, tmp2))
 
 p1 <-  ggplot(data = dat, aes(x = psd95, y = ..density.., color = type)) + geom_density()
 
+p12 <-  ggplot(data = dat, aes(x = psd95, color = type, fill = type)) + 
+          geom_histogram(position = 'identity', alpha = 0.25, bins = 100)
+
 p2 <-  ggplot(data = dat, aes(x = synapsin, y = ..density.., color = type)) + geom_density()
+
+p22 <-  ggplot(data = dat, aes(x = synapsin, color = type, fill = type)) + 
+          geom_histogram(position = 'identity', alpha = 0.25, bins = 100)
 ```
 
 ## PSD95
 
 ```{r, fig.width = 8, fig.height = 7}
-show(p1)
+grid.arrange(p1, p12)
 ```
 
 ## SYNAPSIN
 
 ```{r, fig.width = 8, fig.height = 7}
-show(p2)
+grid.arrange(p2, p22)
 ```
 
 

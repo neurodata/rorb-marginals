@@ -25,15 +25,16 @@ slack = Slacker(slack_token)
 
 ## Function to nudge annotation blobs within 
 def nudgeB(B, zMax, yMax, xMax):
-    ## calculate bounds
-    szmin = abs(np.min(B[:, 0]) - 0)
-    szmax = abs(np.max(B[:, 0]) - zMax) + 1
+    ## calculate min and max for amount
+    ## to nudge to stay withing bounds
+    szmin = -1 * abs(np.min(B[:, 0]) - 0)
+    szmax = abs(np.max(B[:, 0]) - zMax)
 
-    symin = abs(np.min(B[:, 1]) - 0)
-    symax = abs(np.max(B[:, 1]) - yMax) + 1
+    symin = -1 * abs(np.min(B[:, 1]) - 0)
+    symax = abs(np.max(B[:, 1]) - yMax)
 
-    sxmin = abs(np.min(B[:, 2]) - 0)
-    sxmax = abs(np.max(B[:, 2]) - xMax) + 1
+    sxmin = -1 * abs(np.min(B[:, 2]) - 0)
+    sxmax = abs(np.max(B[:, 2]) - xMax)
 
     ## Sample random nudge in z, y, and x directions
     ## making sure to stay within bounds
@@ -42,7 +43,7 @@ def nudgeB(B, zMax, yMax, xMax):
     deltax = np.random.randint(sxmin, sxmax, 1)[0]
 
     ## augment B to homogeneous coordinates
-    Baug = np.hstack((B, np.ones(B.shape[0]).reshape(B.shape[0], 1)))
+    Baug = np.hstack((B, np.ones(B.shape[0]).reshape(B.shape[0], 1))).astype(int)
 
     ## Create the affine transformation matrix
     A = np.hstack((np.vstack((np.identity(3), np.zeros(B.shape[1]))).astype(int), 
